@@ -10,33 +10,33 @@ import pandas as pd
 from sklearn.model_selection import StratifiedKFold
 from sklearn.preprocessing import LabelEncoder
 from sklearn.decomposition import PCA
-from imblearn.pipeline import Pipeline as imbPipeline
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import confusion_matrix
 from sklearn.metrics import f1_score
 from sklearn.feature_selection import SelectFromModel
-from sklearn.svm import SVC
-from sklearn import feature_selection
+from sklearn.pipeline import Pipeline
+from sklearn.model_selection import GridSearchCV
 
 df_train = pd.read_csv(r"train.csv", index_col=0)
 df_x_test = pd.read_csv(r"test.csv", index_col=0)
 labelencoder = LabelEncoder()
 df_train["surface"] = labelencoder.fit_transform(df_train.surface.values)
-clf_rf = RandomForestClassifier(n_estimators=1000, class_weight="balanced")
-clf_svm = SVC(kernel='poly', degree=2, C=0.2, class_weight='balanced')
+clf_rf = RandomForestClassifier(n_estimators=1000, class_weight="balanced_subsample", n_jobs=-1)
+#grid_clf_acc = GridSearchCV(clf_rf, param_grid = grid_values, scoring = 'f1')
+#clf_svm = SVC(kernel='poly', degree=2, C=0.2, class_weight='balanced')
 fs_rf = SelectFromModel(clf_rf)
-fs_svm = SelectFromModel(clf_svm)
-fs = feature_selection.SelectPercentile(feature_selection.f_classif, percentile=10)
+#fs_svm = SelectFromModel(clf_svm)
+#fs = feature_selection.SelectPercentile(feature_selection.f_classif, percentile=10)
 skf = StratifiedKFold(n_splits=5, random_state=True, shuffle=True)
-pipeline = imbPipeline([
+pipeline = Pipeline([
                         ("scale", StandardScaler()),
-                        ("fs", fs),
+                        ("fs", fs_rf),
                         ("reduce_dims", PCA(0.9)),
-                        ("clf", clf_svm)
+                        ("clf", clf_rf)
                         ])
 
-y = df_train["group_id"].values
+y = df_train["surface"].values
 x = df_train.drop(columns=["group_id", "surface", "series_id"]).values
 cm = []
 score = []
@@ -57,6 +57,12 @@ mean_score = sum(score)/len(score)
 y_train = df_train["surface"].values
 df_train.drop(columns=["group_id", "surface", "series_id"], inplace=True)
 x_train = df_train.values
+pipeline = Pipeline([
+                        ("scale", StandardScaler()),
+                        ("fs", fs_rf),
+                        ("reduce_dims", PCA(0.9)),
+                        ("clf", clf_rf)
+                        ])
 pipeline.fit(x_train, y_train)
 x_test = df_x_test[df_train.columns].values
 series_id = df_x_test["series_id.1"].apply(lambda x: int(x)).values
