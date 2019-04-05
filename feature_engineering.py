@@ -20,9 +20,16 @@ def vector_parameters(x, y, z, name):
                       name + "_gama": gama})
 
 def orientation(q0, q1, q2, q3):
-    alpha = np.arctan(2*(q0*q1 + q2*q3)/(1-2*(q1**2 + q2**2)))
-    beta = np.arcsin(2*(q0*q2 - q3*q1))
-    gama = np.arctan(2*(q0*q3 + q1*q2)/(1-2*(q2**2 + q3**2)))
+    alpha_numerator = 2*(q0*q1 + q2*q3)
+    alpha_denominator = 1-2*(q1**2 + q2**2)
+    alpha = np.arctan2(alpha_numerator, alpha_denominator)
+    inside_beta = 2*(q0*q2 - q3*q1)
+    inside_beta[inside_beta > 1] = 1
+    inside_beta[inside_beta < -1] = -1
+    beta = np.arcsin(inside_beta)
+    gama_numerator = 2*(q0*q3 + q1*q2)
+    gama_denominator = 1-2*(q2**2 + q3**2)
+    gama = np.arctan2(gama_numerator, gama_denominator)
     return pd.DataFrame({"orientation_alpha": alpha,
                       "orientation_beta": beta,
                       "orientation_gama": gama})
